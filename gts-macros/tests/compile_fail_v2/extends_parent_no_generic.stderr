@@ -1,0 +1,37 @@
+error[E0277]: the trait bound `LeafTypeV1: serde::Serialize` is not satisfied
+  --> tests/compile_fail_v2/extends_parent_no_generic.rs:8:29
+   |
+ 8 | #[derive(Debug, JsonSchema, GtsSchema)]
+   |                             ^^^^^^^^^ unsatisfied trait bound
+   |
+help: the trait `_serde::Serialize` is not implemented for `LeafTypeV1`
+  --> tests/compile_fail_v2/extends_parent_no_generic.rs:14:1
+   |
+14 | pub struct LeafTypeV1 {
+   | ^^^^^^^^^^^^^^^^^^^^^
+   = note: for local types consider adding `#[derive(serde::Serialize)]` to your `LeafTypeV1` type
+   = note: for types from other crates check whether the crate offers a `serde` feature flag
+   = help: the following other types implement trait `_serde::Serialize`:
+             &'a T
+             &'a mut T
+             ()
+             (T,)
+             (T0, T1)
+             (T0, T1, T2)
+             (T0, T1, T2, T3)
+             (T0, T1, T2, T3, T4)
+           and $N others
+   = help: see issue #48214
+   = note: this error originates in the derive macro `GtsSchema` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0107]: struct takes 0 generic arguments but 1 generic argument was supplied
+  --> tests/compile_fail_v2/extends_parent_no_generic.rs:24:15
+   |
+24 |     extends = LeafTypeV1
+   |               ^^^^^^^^^^ expected 0 generic arguments
+   |
+note: struct defined here, with 0 generic parameters
+  --> tests/compile_fail_v2/extends_parent_no_generic.rs:14:12
+   |
+14 | pub struct LeafTypeV1 {
+   |            ^^^^^^^^^^

@@ -1,0 +1,5 @@
+error: GtsSchema: 'allow_direct_serde' is only meaningful with 'extends'. Without 'extends', serde derives are always allowed. Remove 'allow_direct_serde'.
+  --> tests/compile_fail_v2/allow_direct_serde_on_root.rs:13:12
+   |
+13 | pub struct ThingV1 {
+   |            ^^^^^^^

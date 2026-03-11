@@ -1,0 +1,5 @@
+error: GtsSchema: tuple structs are not supported. Use a named struct instead.
+  --> tests/compile_fail_v2/tuple_struct.rs:11:12
+   |
+11 | pub struct DataV1(String);
+   |            ^^^^^^

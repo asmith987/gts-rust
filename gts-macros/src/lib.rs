@@ -1,6 +1,13 @@
 // Proc macros run at compile time, so panics become compile errors
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 
+mod gts_attrs;
+mod gts_codegen;
+mod gts_field_attrs;
+mod gts_schema_derive;
+mod gts_serde;
+mod gts_validation;
+
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
@@ -132,7 +139,7 @@ fn extract_schema_version(schema_id: &str) -> Option<Version> {
 
 /// Extract the parent schema ID from a `schema_id` (removes the last segment)
 /// e.g., `gts.x.core.events.type.v1~x.core.audit.event.v1~` -> `gts.x.core.events.type.v1~`
-fn extract_parent_schema_id(schema_id: &str) -> Option<String> {
+pub(crate) fn extract_parent_schema_id(schema_id: &str) -> Option<String> {
     let trimmed = schema_id.trim_end_matches('~');
     trimmed
         .rfind('~')
@@ -187,7 +194,7 @@ fn is_type_named(ty: &syn::Type, name: &str) -> bool {
 }
 
 /// Extract serde rename value from field attributes
-fn get_serde_rename(field: &syn::Field) -> Option<String> {
+pub(crate) fn get_serde_rename(field: &syn::Field) -> Option<String> {
     for attr in &field.attrs {
         // Parse the serde attribute using a simpler approach
         if attr.path().is_ident("serde")
@@ -591,7 +598,7 @@ fn add_gts_serde_attrs(input: &mut syn::DeriveInput, base: &BaseAttr) {
 }
 
 /// Build a custom where clause with additional trait bounds on generic params
-fn build_where_clause(
+pub(crate) fn build_where_clause(
     generics: &syn::Generics,
     where_clause: Option<&syn::WhereClause>,
     bounds: &str,
@@ -1839,4 +1846,45 @@ pub fn struct_to_gts_schema(attr: TokenStream, item: TokenStream) -> TokenStream
     };
 
     TokenStream::from(expanded)
+}
+
+/// Derive macro for GTS schema generation.
+///
+/// This is the new, composable alternative to `#[struct_to_gts_schema]`.
+/// It uses `#[gts(...)]` attributes at both the struct and field level.
+///
+/// # Struct-level attributes
+///
+/// ```rust,ignore
+/// #[derive(GtsSchema)]
+/// #[gts(
+///     dir_path = "schemas",
+///     schema_id = "gts.x.core.events.type.v1~",
+///     description = "Base event type",
+///     // extends = ParentStruct,      // optional: for derived types
+///     // allow_direct_serde,          // optional: allow Serialize/Deserialize on nested structs
+/// )]
+/// pub struct BaseEventV1<P: GtsSchema> { ... }
+/// ```
+///
+/// # Field-level attributes
+///
+/// ```rust,ignore
+/// #[gts(type_field)]    // marks GtsSchemaId field as the GTS type discriminator
+/// #[gts(instance_id)]   // marks GtsInstanceId field as the GTS instance ID
+/// #[gts(skip)]          // excludes field from generated JSON Schema
+/// ```
+///
+/// All field-level attributes are optional. Structs without `#[gts(type_field)]` or
+/// `#[gts(instance_id)]` are valid — they represent data entities without GTS identity fields.
+///
+/// # Requirements
+///
+/// All GTS structs must also derive `schemars::JsonSchema`. The `GtsSchema` derive macro
+/// uses `schemars::schema_for!(Self)` internally to generate JSON Schema properties, so
+/// `JsonSchema` must be derived by the user on each struct.
+#[proc_macro_derive(GtsSchema, attributes(gts))]
+pub fn derive_gts_schema(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    TokenStream::from(gts_schema_derive::derive_gts_schema(&input))
 }
